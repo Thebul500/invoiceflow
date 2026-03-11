@@ -1,0 +1,212 @@
+{
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.5",
+  "serialNumber": "urn:uuid:invoiceflow-sbom-2026-03-11",
+  "version": 1,
+  "metadata": {
+    "timestamp": "2026-03-11T00:00:00Z",
+    "component": {
+      "type": "application",
+      "name": "invoiceflow",
+      "version": "0.1.0",
+      "description": "AI invoice processing pipeline. Ingests invoices (PDF, email, image) via watch folder or API, uses LLM (Ollama) to extract vendor, line items, amounts, dates, PO numbers. Validates against purchase orders, flags discrepancies, categorizes expenses, exports to CSV/QuickBooks format. Duplicate detection via fuzzy matching. Approval workflow with webhook notifications. REST API + CLI. FastAPI + SQLite.",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "purl": "pkg:pypi/invoiceflow@0.1.0"
+    },
+    "tools": [
+      {
+        "name": "claude-code",
+        "version": "1.0.0"
+      }
+    ]
+  },
+  "components": [
+    {
+      "type": "library",
+      "name": "fastapi",
+      "version": ">=0.110",
+      "purl": "pkg:pypi/fastapi",
+      "scope": "required",
+      "description": "FastAPI framework, high performance, easy to learn, fast to code, ready for production"
+    },
+    {
+      "type": "library",
+      "name": "uvicorn",
+      "version": ">=0.29",
+      "purl": "pkg:pypi/uvicorn",
+      "scope": "required",
+      "description": "The lightning-fast ASGI server"
+    },
+    {
+      "type": "library",
+      "name": "sqlalchemy",
+      "version": ">=2.0",
+      "purl": "pkg:pypi/sqlalchemy",
+      "scope": "required",
+      "description": "Database Toolkit for Python"
+    },
+    {
+      "type": "library",
+      "name": "aiosqlite",
+      "version": ">=0.20",
+      "purl": "pkg:pypi/aiosqlite",
+      "scope": "required",
+      "description": "asyncio bridge to the standard sqlite3 module"
+    },
+    {
+      "type": "library",
+      "name": "asyncpg",
+      "version": ">=0.29",
+      "purl": "pkg:pypi/asyncpg",
+      "scope": "required",
+      "description": "An asyncio PostgreSQL client library"
+    },
+    {
+      "type": "library",
+      "name": "alembic",
+      "version": ">=1.13",
+      "purl": "pkg:pypi/alembic",
+      "scope": "required",
+      "description": "A database migration tool for SQLAlchemy"
+    },
+    {
+      "type": "library",
+      "name": "pydantic-settings",
+      "version": ">=2.2",
+      "purl": "pkg:pypi/pydantic-settings",
+      "scope": "required",
+      "description": "Settings management using Pydantic"
+    },
+    {
+      "type": "library",
+      "name": "python-jose",
+      "version": ">=3.3",
+      "purl": "pkg:pypi/python-jose",
+      "scope": "required",
+      "description": "JOSE implementation in Python"
+    },
+    {
+      "type": "library",
+      "name": "passlib",
+      "version": ">=1.7",
+      "purl": "pkg:pypi/passlib",
+      "scope": "required",
+      "description": "Comprehensive password hashing framework"
+    },
+    {
+      "type": "library",
+      "name": "httpx",
+      "version": ">=0.27",
+      "purl": "pkg:pypi/httpx",
+      "scope": "required",
+      "description": "A fully featured HTTP client for Python 3"
+    },
+    {
+      "type": "library",
+      "name": "pypdf",
+      "version": ">=4.0",
+      "purl": "pkg:pypi/pypdf",
+      "scope": "required",
+      "description": "A pure-python PDF library"
+    },
+    {
+      "type": "library",
+      "name": "rapidfuzz",
+      "version": ">=3.6",
+      "purl": "pkg:pypi/rapidfuzz",
+      "scope": "required",
+      "description": "Rapid fuzzy string matching"
+    },
+    {
+      "type": "library",
+      "name": "python-multipart",
+      "version": ">=0.0.9",
+      "purl": "pkg:pypi/python-multipart",
+      "scope": "required",
+      "description": "A streaming multipart parser for Python"
+    },
+    {
+      "type": "library",
+      "name": "watchdog",
+      "version": ">=4.0",
+      "purl": "pkg:pypi/watchdog",
+      "scope": "required",
+      "description": "Filesystem events monitoring"
+    },
+    {
+      "type": "library",
+      "name": "pytest",
+      "version": "*",
+      "purl": "pkg:pypi/pytest",
+      "scope": "optional",
+      "description": "Simple powerful testing with Python"
+    },
+    {
+      "type": "library",
+      "name": "pytest-cov",
+      "version": "*",
+      "purl": "pkg:pypi/pytest-cov",
+      "scope": "optional",
+      "description": "Pytest plugin for measuring coverage"
+    },
+    {
+      "type": "library",
+      "name": "pytest-asyncio",
+      "version": "*",
+      "purl": "pkg:pypi/pytest-asyncio",
+      "scope": "optional",
+      "description": "Pytest support for asyncio"
+    },
+    {
+      "type": "library",
+      "name": "ruff",
+      "version": "*",
+      "purl": "pkg:pypi/ruff",
+      "scope": "optional",
+      "description": "An extremely fast Python linter and code formatter"
+    },
+    {
+      "type": "library",
+      "name": "mypy",
+      "version": "*",
+      "purl": "pkg:pypi/mypy",
+      "scope": "optional",
+      "description": "Optional static typing for Python"
+    },
+    {
+      "type": "library",
+      "name": "bandit",
+      "version": "*",
+      "purl": "pkg:pypi/bandit",
+      "scope": "optional",
+      "description": "Security oriented static analyser for Python code"
+    }
+  ],
+  "dependencies": [
+    {
+      "ref": "pkg:pypi/invoiceflow@0.1.0",
+      "dependsOn": [
+        "pkg:pypi/fastapi",
+        "pkg:pypi/uvicorn",
+        "pkg:pypi/sqlalchemy",
+        "pkg:pypi/aiosqlite",
+        "pkg:pypi/asyncpg",
+        "pkg:pypi/alembic",
+        "pkg:pypi/pydantic-settings",
+        "pkg:pypi/python-jose",
+        "pkg:pypi/passlib",
+        "pkg:pypi/httpx",
+        "pkg:pypi/pypdf",
+        "pkg:pypi/rapidfuzz",
+        "pkg:pypi/python-multipart",
+        "pkg:pypi/watchdog"
+      ]
+    }
+  ]
+}
