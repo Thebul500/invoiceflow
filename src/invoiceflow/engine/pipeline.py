@@ -19,13 +19,11 @@ from pathlib import Path
 import httpx
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload
 
 from ..config import settings
 from ..models import Invoice, LineItem
 from .categorizer import categorize_invoice
 from .duplicates import check_duplicates
-from .exporter import export_csv, export_iif
 from .extractor import compute_file_hash, extract_invoice_data
 from .ingestor import SUPPORTED_EXTENSIONS
 from .validator import validate_against_po

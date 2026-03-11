@@ -4,14 +4,12 @@ Tests the domain-specific engine modules against real logic (not mocks).
 """
 
 import tempfile
-from pathlib import Path
 from unittest.mock import AsyncMock, patch
 
 import pytest
 
 from invoiceflow.engine.categorizer import categorize_invoice
-from invoiceflow.engine.duplicates import _compute_similarity, check_duplicates
-from invoiceflow.engine.exporter import export_csv, export_iif
+from invoiceflow.engine.duplicates import _compute_similarity
 from invoiceflow.engine.extractor import (
     _is_image,
     _parse_llm_json,
@@ -19,8 +17,7 @@ from invoiceflow.engine.extractor import (
     extract_text_from_pdf,
 )
 from invoiceflow.engine.ingestor import SUPPORTED_EXTENSIONS, InvoiceFileHandler, ingest_file
-from invoiceflow.engine.validator import validate_against_po
-from invoiceflow.models import Invoice, LineItem, PurchaseOrder
+from invoiceflow.models import Invoice, LineItem
 
 
 def test_parse_llm_json_clean():

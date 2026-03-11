@@ -206,3 +206,21 @@ class PipelineStatusResponse(BaseModel):
     ollama_url: str
     watch_dir: str
     supported_formats: list[str]
+
+
+# --- Email Ingestion ---
+
+
+class EmailIngestRequest(BaseModel):
+    host: Optional[str] = Field(None, description="IMAP server hostname")
+    port: Optional[int] = Field(None, description="IMAP server port")
+    user: Optional[str] = Field(None, description="IMAP username")
+    password: Optional[str] = Field(None, description="IMAP password")
+    folder: Optional[str] = Field(None, description="IMAP folder (default: INBOX)")
+
+
+class EmailIngestResponse(BaseModel):
+    results: list[IngestResponse]
+    total_processed: int
+    successful: int
+    failed: int

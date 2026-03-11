@@ -18,7 +18,6 @@ from ..engine.exporter import export_csv, export_iif
 from ..engine.extractor import compute_file_hash, extract_invoice_data
 from ..engine.ingestor import SUPPORTED_EXTENSIONS, fetch_from_url, ingest_file
 from ..engine.pipeline import (
-    fetch_and_process,
     get_pipeline_status,
     process_directory,
     process_invoice,
@@ -29,6 +28,8 @@ from ..schemas import (
     BatchProcessRequest,
     BatchProcessResponse,
     DuplicateCheckResult,
+    EmailIngestRequest,
+    EmailIngestResponse,
     ExportRequest,
     ExportResponse,
     FetchUrlRequest,
@@ -393,6 +394,40 @@ async def pipeline_status(db: AsyncSession = Depends(get_db)):
     """Get pipeline processing status and statistics."""
     status = await get_pipeline_status(db)
     return PipelineStatusResponse(**status)
+
+
+@router.post("/email-ingest", response_model=EmailIngestResponse)
+async def email_ingest(req: EmailIngestRequest):
+    """Fetch invoices from an IMAP email inbox.
+
+    Connects to the configured (or specified) IMAP server, searches for
+    unread emails with invoice subjects/attachments, downloads them, and
+    runs each through the full extraction pipeline.
+    """
+    from ..engine.email_ingestor import ingest_from_mailbox
+
+    results = await ingest_from_mailbox(
+        host=req.host,
+        port=req.port,
+        user=req.user,
+        password=req.password,
+        folder=req.folder,
+    )
+
+    successful = sum(1 for r in results if "error" not in r)
+    ingest_responses = []
+    for r in results:
+        if "error" in r:
+            ingest_responses.append(IngestResponse(message=f"Failed: {r.get('error')}"))
+        else:
+            ingest_responses.append(IngestResponse(**r))
+
+    return EmailIngestResponse(
+        results=ingest_responses,
+        total_processed=len(results),
+        successful=successful,
+        failed=len(results) - successful,
+    )
 
 
 async def _fire_webhook(invoice: Invoice, event: str):

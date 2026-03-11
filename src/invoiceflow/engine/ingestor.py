@@ -230,6 +230,49 @@ async def fetch_from_url(url: str, filename: str | None = None) -> dict | None:
     return await ingest_file(str(dest))
 
 
+def fetch_from_url_sync(url: str, filename: str | None = None) -> str | None:
+    """Synchronous HTTP fetch for CLI and scripting use.
+
+    Downloads an invoice file from a URL using httpx.get and saves
+    it to the upload directory. This is the synchronous data ingestion
+    helper — use fetch_from_url for async contexts.
+
+    Args:
+        url: Remote URL to fetch the invoice file from.
+        filename: Optional override filename. Auto-detected from URL if omitted.
+
+    Returns:
+        Local file path of the saved file, or None on failure.
+    """
+    if not filename:
+        parsed = urlparse(url)
+        filename = Path(parsed.path).name or "downloaded_invoice"
+        if not Path(filename).suffix:
+            filename += ".pdf"
+
+    suffix = Path(filename).suffix.lower()
+    if suffix not in SUPPORTED_EXTENSIONS:
+        logger.warning("Unsupported file type from URL: %s", suffix)
+        return None
+
+    upload_dir = Path(settings.upload_dir)
+    dest = upload_dir / filename
+    counter = 1
+    while dest.exists():
+        dest = upload_dir / f"{Path(filename).stem}_{counter}{suffix}"
+        counter += 1
+
+    try:
+        resp = httpx.get(url, follow_redirects=True, timeout=60.0)
+        resp.raise_for_status()
+        dest.write_bytes(resp.content)
+        logger.info("Sync fetch: %d bytes from %s → %s", len(resp.content), url, dest.name)
+        return str(dest)
+    except httpx.HTTPError as e:
+        logger.error("Sync fetch failed for %s: %s", url, e)
+        return None
+
+
 async def run_ingestor(watch_dir: str | None = None) -> None:
     """Run the watch folder ingestor as an async task.
 

@@ -29,6 +29,13 @@ class Settings(BaseSettings):
     duplicate_threshold: float = 85.0
     webhook_url: str = ""
 
+    imap_host: str = "localhost"
+    imap_port: int = 993
+    imap_user: str = ""
+    imap_password: str = ""
+    imap_folder: str = "INBOX"
+    imap_use_ssl: bool = True
+
     model_config = {"env_prefix": "INVOICEFLOW_"}
 
 

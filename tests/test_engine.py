@@ -11,12 +11,11 @@ from pathlib import Path
 from unittest.mock import AsyncMock, patch
 
 import pytest
-from sqlalchemy import select
 
 from invoiceflow.engine.categorizer import categorize_invoice
 from invoiceflow.engine.duplicates import check_duplicates
 from invoiceflow.engine.exporter import export_csv, export_iif
-from invoiceflow.engine.extractor import extract_invoice_data, parse_email
+from invoiceflow.engine.extractor import parse_email
 from invoiceflow.engine.ingestor import (
     fetch_from_url,
     ingest_file,
@@ -410,17 +409,6 @@ async def test_ingest_file_full_pipeline(db_session):
         f.write("Invoice #INGEST-001\nVendor: Test Corp\nTotal: $250.00")
         f.flush()
         txt_path = f.name
-
-    mock_extracted = {
-        "invoice_number": "INGEST-001",
-        "vendor_name": "Test Corp",
-        "total_amount": 250.00,
-        "line_items": [
-            {"description": "Service fee", "quantity": 1, "unit_price": 250.0, "amount": 250.0}
-        ],
-        "raw_text": "Invoice text",
-        "file_hash": "fakehash123",
-    }
 
     with patch(
         "invoiceflow.engine.extractor.extract_with_ollama",

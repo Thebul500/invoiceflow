@@ -97,6 +97,36 @@ async def _cmd_watch(args: argparse.Namespace) -> int:
     return 0
 
 
+async def _cmd_email_ingest(args: argparse.Namespace) -> int:
+    """Fetch invoices from an IMAP email inbox."""
+    from .database import init_db
+    from .engine.email_ingestor import ingest_from_mailbox
+
+    await init_db()
+
+    print(f"Connecting to IMAP: {args.host or settings.imap_host}:{args.port or settings.imap_port}")
+    results = await ingest_from_mailbox(
+        host=args.host,
+        port=args.port,
+        user=args.user,
+        password=args.password,
+        folder=args.folder,
+    )
+
+    if not results:
+        print("No invoice emails found.")
+        return 0
+
+    success = sum(1 for r in results if "error" not in r)
+    print(f"Processed {len(results)} attachments ({success} succeeded)")
+    for r in results:
+        if "error" in r:
+            print(f"  FAIL: {r.get('file', 'unknown')} — {r['error']}")
+        else:
+            print(f"  OK:   #{r['id']} {r.get('vendor_name', 'N/A')} ${r.get('total_amount', 0):.2f}")
+    return 0
+
+
 def _cmd_serve(args: argparse.Namespace) -> int:
     """Run the FastAPI API server."""
     import uvicorn
@@ -137,6 +167,14 @@ def build_parser() -> argparse.ArgumentParser:
     p_watch = sub.add_parser("watch", help="Start watch folder monitor for auto-ingestion")
     p_watch.add_argument("--dir", help="Watch directory (default: ~/.invoiceflow/watch)")
 
+    # email-ingest
+    p_email = sub.add_parser("email-ingest", help="Fetch invoices from an IMAP email inbox")
+    p_email.add_argument("--host", help="IMAP server hostname")
+    p_email.add_argument("--port", type=int, help="IMAP server port")
+    p_email.add_argument("--user", help="IMAP username")
+    p_email.add_argument("--password", help="IMAP password")
+    p_email.add_argument("--folder", help="IMAP folder (default: INBOX)")
+
     # serve
     p_serve = sub.add_parser("serve", help="Run the API server")
     p_serve.add_argument("--host", default="127.0.0.1", help="Bind host")
@@ -160,6 +198,7 @@ def main() -> int:
         "fetch": _cmd_fetch,
         "export": _cmd_export,
         "watch": _cmd_watch,
+        "email-ingest": _cmd_email_ingest,
     }
 
     if args.command == "serve":
