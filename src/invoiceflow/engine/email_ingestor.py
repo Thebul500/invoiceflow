@@ -101,6 +101,7 @@ def connect_imap(
 
     logger.info("Connecting to IMAP server %s:%d (SSL=%s)", host, port, use_ssl)
 
+    conn: imaplib.IMAP4_SSL | imaplib.IMAP4
     if use_ssl:
         conn = imaplib.IMAP4_SSL(host, port)
     else:
