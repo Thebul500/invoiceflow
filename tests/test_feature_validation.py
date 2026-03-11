@@ -150,8 +150,11 @@ def test_extract_text_from_pdf():
     assert isinstance(text, str)
 
 
-def test_extract_invoice_data_calls_ollama():
+@pytest.mark.asyncio
+async def test_extract_invoice_data_calls_ollama():
     """extract_invoice_data calls Ollama with the text content."""
+    from invoiceflow.engine.extractor import extract_invoice_data
+
     with tempfile.NamedTemporaryFile(mode="w", suffix=".txt", delete=False) as f:
         f.write("Invoice #TEST-001\nVendor: Test Corp\nTotal: $100.00")
         f.flush()
@@ -164,18 +167,12 @@ def test_extract_invoice_data_calls_ollama():
         "line_items": [],
     }
 
-    import asyncio
-
     with patch(
         "invoiceflow.engine.extractor.extract_with_ollama",
         new_callable=AsyncMock,
         return_value=mock_response,
     ):
-        from invoiceflow.engine.extractor import extract_invoice_data
-
-        result = asyncio.get_event_loop().run_until_complete(
-            extract_invoice_data(txt_path)
-        )
+        result = await extract_invoice_data(txt_path)
     assert result["invoice_number"] == "TEST-001"
     assert "file_hash" in result
     assert "raw_text" in result
@@ -284,29 +281,19 @@ def test_invoice_file_handler_ignores_unsupported():
     assert handler.queue.empty()
 
 
-def test_ingest_nonexistent_file():
+@pytest.mark.asyncio
+async def test_ingest_nonexistent_file():
     """Ingesting a non-existent file returns None."""
-    import asyncio
-
-    result = asyncio.get_event_loop().run_until_complete(
-        __import__("invoiceflow.engine.ingestor", fromlist=["ingest_file"]).ingest_file(
-            "/nonexistent/file.pdf"
-        )
-    )
+    result = await ingest_file("/nonexistent/file.pdf")
     assert result is None
 
 
-def test_ingest_unsupported_extension():
+@pytest.mark.asyncio
+async def test_ingest_unsupported_extension():
     """Ingesting an unsupported file type returns None."""
-    import asyncio
-
     with tempfile.NamedTemporaryFile(suffix=".docx", delete=False) as f:
         f.write(b"fake docx content")
         f.flush()
 
-    result = asyncio.get_event_loop().run_until_complete(
-        __import__("invoiceflow.engine.ingestor", fromlist=["ingest_file"]).ingest_file(
-            f.name
-        )
-    )
+    result = await ingest_file(f.name)
     assert result is None

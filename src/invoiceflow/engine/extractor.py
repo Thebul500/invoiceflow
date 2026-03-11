@@ -143,13 +143,13 @@ def parse_email(file_path: str) -> tuple[str, list[tuple[str, bytes]]]:
 
         if "attachment" in disposition:
             fname = part.get_filename() or "attachment"
-            payload = part.get_payload(decode=True)
-            if payload:
-                attachments.append((fname, payload))
+            raw_payload = part.get_payload(decode=True)
+            if isinstance(raw_payload, bytes):
+                attachments.append((fname, raw_payload))
         elif content_type == "text/plain":
-            payload = part.get_payload(decode=True)
-            if payload:
-                body_parts.append(payload.decode(errors="replace"))
+            raw_payload = part.get_payload(decode=True)
+            if isinstance(raw_payload, bytes):
+                body_parts.append(raw_payload.decode(errors="replace"))
 
     return "\n".join(body_parts), attachments
 
