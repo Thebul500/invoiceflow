@@ -139,7 +139,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     # serve
     p_serve = sub.add_parser("serve", help="Run the API server")
-    p_serve.add_argument("--host", default="0.0.0.0", help="Bind host")
+    p_serve.add_argument("--host", default="127.0.0.1", help="Bind host")
     p_serve.add_argument("--port", type=int, default=8000, help="Bind port")
     p_serve.add_argument("--reload", action="store_true", help="Auto-reload on code changes")
 

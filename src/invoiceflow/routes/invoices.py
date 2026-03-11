@@ -17,9 +17,17 @@ from ..engine.duplicates import check_duplicates
 from ..engine.exporter import export_csv, export_iif
 from ..engine.extractor import compute_file_hash, extract_invoice_data
 from ..engine.ingestor import SUPPORTED_EXTENSIONS, fetch_from_url, ingest_file
+from ..engine.pipeline import (
+    fetch_and_process,
+    get_pipeline_status,
+    process_directory,
+    process_invoice,
+)
 from ..engine.validator import validate_against_po
 from ..models import Invoice, LineItem
 from ..schemas import (
+    BatchProcessRequest,
+    BatchProcessResponse,
     DuplicateCheckResult,
     ExportRequest,
     ExportResponse,
@@ -30,6 +38,8 @@ from ..schemas import (
     InvoiceListResponse,
     InvoiceResponse,
     InvoiceStatusUpdate,
+    PipelineResult,
+    PipelineStatusResponse,
     ValidationResult,
     WatchFolderStatus,
 )
@@ -331,6 +341,58 @@ async def watch_folder_status():
         supported_extensions=sorted(SUPPORTED_EXTENSIONS),
         active=True,
     )
+
+
+@router.post("/pipeline/process", response_model=PipelineResult, status_code=201)
+async def pipeline_process_file(req: IngestRequest, db: AsyncSession = Depends(get_db)):
+    """Process a single invoice file through the full pipeline.
+
+    Runs the complete workflow: ingest → extract (LLM) → validate → dedup → categorize.
+    Returns detailed processing results including validation status.
+    """
+    try:
+        result = await process_invoice(req.file_path, db)
+        return PipelineResult(**result)
+    except FileNotFoundError:
+        raise HTTPException(status_code=404, detail="File not found")
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.post("/pipeline/batch", response_model=BatchProcessResponse)
+async def pipeline_batch_process(req: BatchProcessRequest, db: AsyncSession = Depends(get_db)):
+    """Batch process all invoice files in a directory.
+
+    Scans the directory for supported file types (PDF, image, email, text)
+    and runs each through the full extraction and validation pipeline.
+    This is the batch data ingestion endpoint.
+    """
+    try:
+        results = await process_directory(req.directory, db)
+    except NotADirectoryError:
+        raise HTTPException(status_code=400, detail="Not a valid directory")
+
+    pipeline_results = []
+    for r in results:
+        if "error" in r:
+            pipeline_results.append(PipelineResult(error=r["error"], file=r.get("file")))
+        else:
+            pipeline_results.append(PipelineResult(**r))
+
+    successful = sum(1 for r in results if "error" not in r)
+    return BatchProcessResponse(
+        results=pipeline_results,
+        total_processed=len(results),
+        successful=successful,
+        failed=len(results) - successful,
+    )
+
+
+@router.get("/pipeline/status", response_model=PipelineStatusResponse)
+async def pipeline_status(db: AsyncSession = Depends(get_db)):
+    """Get pipeline processing status and statistics."""
+    status = await get_pipeline_status(db)
+    return PipelineStatusResponse(**status)
 
 
 async def _fire_webhook(invoice: Invoice, event: str):

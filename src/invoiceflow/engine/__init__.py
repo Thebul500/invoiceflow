@@ -15,6 +15,7 @@ from .duplicates import check_duplicates
 from .exporter import export_csv, export_iif
 from .extractor import extract_invoice_data, extract_text_from_pdf, extract_with_ollama
 from .ingestor import fetch_from_url, ingest_file, start_watcher
+from .pipeline import fetch_and_process, get_pipeline_status, process_directory, process_invoice
 from .validator import validate_against_po
 
 __all__ = [
@@ -25,8 +26,12 @@ __all__ = [
     "extract_invoice_data",
     "extract_text_from_pdf",
     "extract_with_ollama",
+    "fetch_and_process",
     "fetch_from_url",
+    "get_pipeline_status",
     "ingest_file",
+    "process_directory",
+    "process_invoice",
     "start_watcher",
     "validate_against_po",
 ]

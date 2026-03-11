@@ -168,3 +168,41 @@ class WatchFolderStatus(BaseModel):
     watch_dir: str
     supported_extensions: list[str]
     active: bool = True
+
+
+# --- Pipeline ---
+
+
+class PipelineResult(BaseModel):
+    id: Optional[int] = None
+    invoice_number: Optional[str] = None
+    vendor_name: Optional[str] = None
+    total_amount: Optional[float] = None
+    status: Optional[str] = None
+    category: Optional[str] = None
+    is_duplicate: bool = False
+    validation_valid: bool = True
+    validation_discrepancies: list[str] = Field(default_factory=list)
+    error: Optional[str] = None
+    file: Optional[str] = None
+
+
+class BatchProcessRequest(BaseModel):
+    directory: str = Field(..., description="Path to directory containing invoice files")
+
+
+class BatchProcessResponse(BaseModel):
+    results: list[PipelineResult]
+    total_processed: int
+    successful: int
+    failed: int
+
+
+class PipelineStatusResponse(BaseModel):
+    total_invoices: int
+    by_status: dict[str, int]
+    duplicates_detected: int
+    ollama_model: str
+    ollama_url: str
+    watch_dir: str
+    supported_formats: list[str]
