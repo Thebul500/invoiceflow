@@ -115,7 +115,7 @@ def _parse_llm_json(text: str) -> dict:  # type: ignore[type-arg]
             try:
                 return json.loads(cleaned[start:end])  # type: ignore[no-any-return]
             except json.JSONDecodeError:
-                pass
+                logger.debug("Substring JSON parse also failed")
         logger.warning("Failed to parse LLM JSON response: %s", cleaned[:200])
         return {}
 
