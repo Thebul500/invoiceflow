@@ -256,7 +256,7 @@ async def ingest_from_mailbox(
         try:
             conn.logout()
         except Exception:
-            pass
+            logger.debug("IMAP logout failed (connection may already be closed)")
 
     logger.info(
         "Email ingestion complete: %d/%d succeeded",
