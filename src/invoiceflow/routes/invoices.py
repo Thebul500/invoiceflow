@@ -269,6 +269,101 @@ async def validate_invoice(invoice_id: int, db: AsyncSession = Depends(get_db)):
     return validation
 
 
+@router.post("/{invoice_id}/reprocess", response_model=InvoiceResponse)
+async def reprocess_invoice(invoice_id: int, db: AsyncSession = Depends(get_db)):
+    """Re-extract data from an existing invoice's source file.
+
+    Useful when extraction failed partially or when Ollama model has been
+    upgraded. Re-runs LLM extraction, categorization, and duplicate check
+    on the original file without creating a new invoice record.
+    """
+    stmt = (
+        select(Invoice)
+        .options(selectinload(Invoice.line_items))
+        .where(Invoice.id == invoice_id)
+    )
+    result = await db.execute(stmt)
+    invoice = result.scalar_one_or_none()
+    if not invoice:
+        raise HTTPException(status_code=404, detail="Invoice not found")
+
+    if not invoice.file_path:
+        raise HTTPException(
+            status_code=400,
+            detail="Invoice has no source file — cannot reprocess. "
+            "Only file-uploaded invoices can be reprocessed.",
+        )
+
+    from pathlib import Path
+
+    if not Path(invoice.file_path).exists():
+        raise HTTPException(
+            status_code=400,
+            detail=f"Source file no longer exists: {invoice.file_path}",
+        )
+
+    # Re-extract
+    try:
+        extracted = await extract_invoice_data(invoice.file_path)
+    except Exception as e:
+        raise HTTPException(
+            status_code=502,
+            detail=f"Re-extraction failed (check Ollama connectivity): {e}",
+        )
+
+    line_items_data = extracted.pop("line_items", [])
+    raw_text = extracted.pop("raw_text", "")
+    file_hash = extracted.pop("file_hash", "")
+
+    # Update invoice fields
+    invoice.invoice_number = extracted.get("invoice_number")
+    invoice.vendor_name = extracted.get("vendor_name")
+    invoice.vendor_address = extracted.get("vendor_address")
+    invoice.invoice_date = extracted.get("invoice_date")
+    invoice.due_date = extracted.get("due_date")
+    invoice.subtotal = extracted.get("subtotal")
+    invoice.tax_amount = extracted.get("tax_amount")
+    invoice.total_amount = extracted.get("total_amount")
+    invoice.currency = extracted.get("currency", "USD")
+    invoice.po_number = extracted.get("po_number")
+    invoice.file_hash = file_hash
+    invoice.raw_text = raw_text
+    invoice.extracted_json = json.dumps(extracted)
+
+    # Replace line items
+    invoice.line_items.clear()
+    for item_data in line_items_data:
+        if isinstance(item_data, dict):
+            invoice.line_items.append(
+                LineItem(
+                    description=item_data.get("description", ""),
+                    quantity=item_data.get("quantity", 1.0),
+                    unit_price=item_data.get("unit_price"),
+                    amount=item_data.get("amount", 0.0),
+                )
+            )
+
+    # Re-categorize
+    invoice.category = categorize_invoice(invoice)
+    await db.commit()
+
+    invoice = await _fresh_invoice(db, invoice_id)
+
+    # Re-check duplicates
+    dup_result = await check_duplicates(invoice, db)
+    if dup_result.is_duplicate:
+        invoice.duplicate_of_id = dup_result.matches[0].invoice_id
+        invoice.validation_notes = (
+            f"Potential duplicate of invoice #{dup_result.matches[0].invoice_id} "
+            f"(score: {dup_result.matches[0].similarity_score}%)"
+        )
+    else:
+        invoice.duplicate_of_id = None
+
+    await db.commit()
+    return await _fresh_invoice(db, invoice_id)
+
+
 @router.post("/{invoice_id}/duplicates", response_model=DuplicateCheckResult)
 async def check_invoice_duplicates(invoice_id: int, db: AsyncSession = Depends(get_db)):
     """Check an invoice for potential duplicates."""

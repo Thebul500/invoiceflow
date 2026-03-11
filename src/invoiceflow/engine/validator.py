@@ -2,15 +2,18 @@
 
 import logging
 
+from rapidfuzz import fuzz
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from ..config import settings
 from ..models import Invoice, PurchaseOrder
 from ..schemas import ValidationResult
 
 logger = logging.getLogger(__name__)
 
-AMOUNT_TOLERANCE = 0.01
+# Vendor name similarity threshold (0-100). Below this, vendor is flagged as mismatched.
+VENDOR_SIMILARITY_THRESHOLD = 80.0
 
 
 async def validate_against_po(
@@ -20,8 +23,8 @@ async def validate_against_po(
 
     Checks:
     - PO exists
-    - Vendor name matches
-    - Total amount within tolerance
+    - Vendor name matches (fuzzy, >=80% similarity)
+    - Total amount within configurable tolerance (INVOICEFLOW_PO_AMOUNT_TOLERANCE)
     - PO is still open
     """
     if not invoice.po_number:
@@ -49,17 +52,20 @@ async def validate_against_po(
     if invoice.vendor_name and po.vendor_name:
         inv_vendor = invoice.vendor_name.strip().lower()
         po_vendor = po.vendor_name.strip().lower()
-        if inv_vendor != po_vendor:
+        similarity = fuzz.ratio(inv_vendor, po_vendor)
+        if similarity < VENDOR_SIMILARITY_THRESHOLD:
             discrepancies.append(
-                f"Vendor mismatch: invoice='{invoice.vendor_name}', PO='{po.vendor_name}'"
+                f"Vendor mismatch: invoice='{invoice.vendor_name}', "
+                f"PO='{po.vendor_name}' (similarity: {similarity:.0f}%)"
             )
 
     if invoice.total_amount is not None and po.total_amount is not None:
         diff = abs(invoice.total_amount - po.total_amount)
-        if diff > AMOUNT_TOLERANCE:
+        tolerance = settings.po_amount_tolerance
+        if diff > tolerance:
             discrepancies.append(
                 f"Amount mismatch: invoice=${invoice.total_amount:.2f}, "
-                f"PO=${po.total_amount:.2f} (diff=${diff:.2f})"
+                f"PO=${po.total_amount:.2f} (diff=${diff:.2f}, tolerance=${tolerance:.2f})"
             )
 
     return ValidationResult(

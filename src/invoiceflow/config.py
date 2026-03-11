@@ -27,6 +27,7 @@ class Settings(BaseSettings):
     export_dir: str = str(EXPORT_DIR)
 
     duplicate_threshold: float = 85.0
+    po_amount_tolerance: float = 0.01
     webhook_url: str = ""
 
     imap_host: str = "localhost"
