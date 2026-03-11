@@ -31,7 +31,43 @@ jobs:
         with:
           python-version: "3.12"
       - run: pip install -e .[dev]
-      - run: pytest --cov=src/invoiceflow -v
-      - run: ruff check src/
-      - run: mypy src/invoiceflow/ --ignore-missing-imports
-      - run: bandit -r src/invoiceflow/ -q  # security
+      - name: Run tests with coverage
+        run: pytest --cov=invoiceflow --cov-report=term-missing --cov-report=xml:coverage.xml --cov-fail-under=50 -v
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage.xml
+
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -e .[dev]
+      - name: Lint with ruff
+        run: ruff check src/
+      - name: Type check with mypy
+        run: mypy src/invoiceflow/ --ignore-missing-imports
+
+  security:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -e .[dev]
+      - name: Security scan with bandit
+        run: bandit -r src/invoiceflow/ -f json -o bandit-report.json || true
+      - name: Check bandit results
+        run: bandit -r src/invoiceflow/ -q
+      - name: Upload security report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: bandit-report
+          path: bandit-report.json
